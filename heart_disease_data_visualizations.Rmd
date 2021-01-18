@@ -1,0 +1,213 @@
+---
+title: "STAT 410 Project Data Visualizations"
+author: "Hsing-Yng (Winnie) Louh"
+date: "11/15/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = F)
+```
+
+```{r}
+library(readr)
+library(stats)
+library(dplyr)
+library(magrittr)
+library(ggplot2)
+library(plyr)
+library(stringr)
+
+heart <- read_csv("heart.csv")
+colnames(heart) <- c("Age","Sex","Chestpain","Resting_blood_pressure",
+                     "Cholesterol","Fasting_blood_sugar",
+                     "Resting_ECG","Max_heart_rate",
+                     "Exercise_angina","ST_depressions_exercise",
+                     "ST_exercise_slope", "Color_fluoroscopy",
+                     "Thalassemia_level", "Disease_diagnosis")
+heart <- heart %>% 
+    arrange(desc(Sex)) %>% 
+  select(!Thalassemia_level)
+```
+
+# Summary Statistics
+```{r}
+summary(heart)
+```
+
+
+# Histogram of Heart Disease Frequency and Gender
+```{r}
+heart_gender_column <- heart
+heart_gender_column$Sex[heart_gender_column$Sex == 1] <- "Male"
+heart_gender_column$Sex[heart_gender_column$Sex == 0] <- "Female"
+heart_gender_column$Disease_diagnosis[
+  heart_gender_column$Disease_diagnosis == 1] <- "Yes"
+heart_gender_column$Disease_diagnosis[
+  heart_gender_column$Disease_diagnosis == 0] <- "No"
+heart_gender_column$Disease_diagnosis <- 
+  as.factor(heart_gender_column$Disease_diagnosis)
+
+png(file="your_file_path.png",
+width=1920, height=1080)
+
+heart_gender_column %>% 
+ggplot(aes(x=Disease_diagnosis,))  + 
+  geom_histogram(stat="count", aes(fill = factor(Sex))) +
+  labs(title= "Histogram of Heart Disease Diagnosis Numbers and 
+Gender Disribution",
+       x = "Heart Disease Diagnosis", y = "Number of People", 
+       fill = "Gender") + theme_bw()+
+  scale_fill_brewer(palette="Paired") + 
+  theme(plot.title = element_text(hjust=.5,vjust=.5)) +
+  theme(panel.grid.minor.x = element_line(),
+        panel.grid.minor.y = element_line(),
+        panel.grid.major.x = element_line(),
+        panel.grid.major.y = element_line(),
+        plot.title = element_text(hjust = 0.5, size =43),
+        axis.text = element_text(size = 30),
+        axis.title = element_text(size = 35),
+        legend.text = element_text(size = 28),
+        legend.title = element_text(size = 32),
+        legend.key.width = unit(5, "cm"),
+        axis.text.x = element_text(hjust = .5, vjust = .5))
+
+dev.off()
+  
+```
+
+
+# Histogram of Age and Heart Disease Diagnosis
+```{r}
+heart_diagnosis_column <- heart
+
+heart_diagnosis_column$Disease_diagnosis[
+  heart_diagnosis_column$Disease_diagnosis == 1] <- "Yes"
+heart_diagnosis_column$Disease_diagnosis[
+  heart_diagnosis_column$Disease_diagnosis == 0] <- "No"
+heart_diagnosis_column$Disease_diagnosis <- 
+  as.factor(heart_diagnosis_column$Disease_diagnosis)
+mean <- ddply(heart_diagnosis_column, "Disease_diagnosis", 
+              summarise, Mean=mean(Age))
+
+png(file="your_file_path.png",
+width=1920, height=1080)
+heart_diagnosis_column %>% 
+ggplot(aes(x=Age, fill = `Disease_diagnosis`)) +
+  geom_histogram(aes(y=..count../sum(..count..)), alpha = .4, binwidth = .8,
+                 position = "dodge") +
+  geom_vline(xintercept=mean$Mean[1], color="hotpink1",
+             linetype="dashed", size = 2) +
+  geom_vline(xintercept=mean$Mean[2], color="deepskyblue2",
+             linetype="dashed", size = 2) +
+  geom_line(aes(y = 0, color = "deepskyblue2")) +
+  geom_line(aes(y = 0, color = "hotpink1")) +
+
+  labs(title= "Histogram of Age and Heart Disease Diagnosis",
+       x = "Age", y = "Proportion", fill = "Disease Diagnosis",
+       color = "Disease Diagnosis") +
+  geom_hline(yintercept = 0) +
+  guides(color = guide_legend(override.aes = list(linetype = c("dashed", "dashed"), size = 3)))+
+  scale_color_manual("Line Legend", values=c("deepskyblue2", "hotpink1"),
+                     labels = 
+                       c("Mean Age of People\nDiagnosed",
+                                "Mean Age of People\nNot Diagnosed")) +
+  theme_bw() + 
+  theme(plot.title = element_text(hjust=.5,vjust=.5))+
+  theme(panel.grid.minor.x = element_line(),
+        panel.grid.minor.y = element_line(),
+        panel.grid.major.x = element_line(),
+        panel.grid.major.y = element_line(),
+        plot.title = element_text(hjust = 0.5, size =43),
+        axis.text = element_text(size = 30),
+        axis.title = element_text(size = 35),
+        legend.text = element_text(size = 28),
+        legend.title = element_text(size = 32),
+        legend.key.width = unit(5, "cm"),
+        axis.text.x = element_text(hjust = .5, vjust = .5))
+
+dev.off()
+```
+
+# Chest Pain Histogram
+```{r}
+heart_chestpain_column <- heart
+
+heart_chestpain_column$Chestpain[
+  heart_chestpain_column$Chestpain == 0] <- "Typical Angina"
+heart_chestpain_column$Chestpain[
+  heart_chestpain_column$Chestpain == 1] <- "Atypical Angina"
+heart_chestpain_column$Chestpain[
+  heart_chestpain_column$Chestpain == 2] <- "Non-anginal Pain"
+heart_chestpain_column$Chestpain[
+  heart_chestpain_column$Chestpain == 3] <- "Asymptomatic"
+heart_chestpain_column$Chestpain <- as.factor(heart_chestpain_column$Chestpain)
+
+png(file="your_file_path.png",
+width=1920, height=1080)
+ggplot(aes(x=Chestpain, fill = Chestpain), data = heart_chestpain_column) + 
+  geom_histogram(stat = "count") +
+  labs(title= "Histogram of the Number of People With Each Type of Chest Pain",
+       x = "Chest Pain Type", y = "Number of People", fill = "Chest Pain Type") +
+  theme_bw() + 
+  theme(plot.title = element_text(hjust=.5,vjust=.5),
+        legend.position = "None")+
+  theme(panel.grid.minor.x = element_line(),
+        panel.grid.minor.y = element_line(),
+        panel.grid.major.x = element_line(),
+        panel.grid.major.y = element_line(),
+        plot.title = element_text(hjust = 0.5, size =43),
+        axis.text = element_text(size = 30),
+        axis.title = element_text(size = 35),
+        legend.text = element_text(size = 28),
+        legend.title = element_text(size = 32),
+        legend.key.width = unit(5, "cm"),
+        axis.text.x = element_text(hjust = .5, vjust = .5))
+
+dev.off()
+```
+
+
+# Angina After Exercise
+```{r}
+heart_angina_column <- heart
+heart_angina_column$Exercise_angina[heart_angina_column$Exercise_angina == 1] <- 
+  "Yes"
+heart_angina_column$Exercise_angina[heart_angina_column$Exercise_angina == 0] <- 
+  "No"
+heart_angina_column$Exercise_angina <-
+  as.factor(heart_angina_column$Exercise_angina)
+
+png(file="your_file_path.png",
+width=1920, height=1080)
+
+ggplot(data=heart_angina_column, aes(x=Resting_blood_pressure,
+                                     y=Max_heart_rate,
+                                     color = Exercise_angina)) +
+  geom_point(aes(shape=Exercise_angina), size = 10, position = "jitter",
+             alpha=.5) + 
+  labs(title= "Resting Blood Pressure vs. Max Heart Rate Achieved",
+       x = "Resting Blood Pressure", y = "Max Heart Rate Achieved") +
+  scale_shape_manual(name="Presence of 
+Exercise-Induced Angina",
+                     values=c(19,17))+
+  scale_color_manual(name="Presence of 
+Exercise-Induced Angina",
+                     values = c("#999999","#E69F00")) +
+  theme_bw() +
+  theme(plot.title = element_text(hjust=.5,vjust=.5))+
+  theme(panel.grid.minor.x = element_line(),
+        panel.grid.minor.y = element_line(),
+        panel.grid.major.x = element_line(),
+        panel.grid.major.y = element_line(),
+        plot.title = element_text(hjust = 0.5, size =43),
+        axis.text = element_text(size = 30),
+        axis.title = element_text(size = 35),
+        legend.text = element_text(size = 28),
+        legend.title = element_text(size = 32),
+        legend.key.width = unit(5, "cm"),
+        axis.text.x = element_text(hjust = .5, vjust = .5))
+
+dev.off()
+```
+

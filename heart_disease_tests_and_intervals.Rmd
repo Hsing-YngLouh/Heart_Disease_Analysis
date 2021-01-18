@@ -1,0 +1,175 @@
+---
+title: "STAT 410 Final Project Hypothesis Tests and Confidence Intervals"
+author: "Hsing-Yng (Winnie) Louh"
+date: "11/16/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(readr)
+library(stats)
+library(dplyr)
+library(magrittr)
+library(ggplot2)
+library(plyr)
+
+heart <- read_csv("heart.csv")
+colnames(heart) <- c("Age","Sex","Chestpain","Resting_blood_pressure",
+                     "Cholesterol","Fasting_blood_sugar",
+                     "Resting_ECG","Max_heart_rate",
+                     "Exercise_angina","ST_depressions_exercise",
+                     "ST_exercise_slope", "Color_fluoroscopy",
+                     "Thalassemia_level", "Disease_diagnosis")
+```
+
+# Hypothesis Tests
+### Separate Data Between Males and Females
+```{r}
+females <- heart %>% 
+  filter(Sex == 0)
+males <- heart %>% 
+  filter(Sex == 1)
+```
+
+### Difference in Mean Resting Blood Pressure Between Males and Females
+```{r}
+male_rbp <- males$Resting_blood_pressure
+female_rbp <- females$Resting_blood_pressure
+mean_male_rbp <- mean(male_rbp)
+mean_female_rbp <- mean(female_rbp)
+var_male_rbp <- var(male_rbp)
+var_female_rbp <- var(female_rbp)
+n_male <- length(male_rbp)
+n_female <- length(female_rbp)
+df <- n_male+n_female-2
+sigma2hat <- ((n_male-1)*var_male_rbp+(n_female-1)*var_female_rbp)/(df)
+sigmahat <- sqrt(sigma2hat)
+se <- sigmahat*(1/n_male+1/n_female)^(1/2)
+tstat <- ((mean_male_rbp-mean_female_rbp)-0)/se
+pvalue <- (1-pt(abs(tstat), df))*2
+pvalue
+
+y <- heart$Resting_blood_pressure
+male <- matrix(heart$Sex,nrow=length(y))
+n <- length(y)
+col1 <- matrix(rep(1, times = length(y), nrow = n))
+x <- cbind(col1,male)
+y <- matrix(y, nrow = n)
+T <- matrix(c(0,1),nrow=1)
+k <- ncol(x)-1
+xt <- t(x)
+xtx <- xt%*%x
+xtx <- xtx
+xtxi <- solve(xtx)
+c <- xtxi
+beta.hat <- xtxi%*%xt%*%y
+beta.hat
+beta.hat0 <- beta.hat[1,1]
+beta.hat1 <- beta.hat[2,1]
+yhat <- x %*% beta.hat
+# Residual
+hat.matrix <- x %*% solve(xtx) %*% t(x)
+ones <- rep(1, n)
+SSR <- t(y) %*% (hat.matrix - (1/n)*ones %*% t(ones)) %*% y
+resids <-  (diag(length(y)) - hat.matrix) %*% y
+SSRes <- t(y)%*%resids
+SST <- SSRes + SSR
+MSR <- SSR / k
+MSRes <-  SSRes / (n - k - 1)
+sigma.squared.hat <- MSRes
+T.betahat.diff<- T%*%beta.hat-0
+r=nrow(T)
+f0<- ((t(T.betahat.diff)%*%solve(T%*%xtxi%*%t(T))%*%T.betahat.diff)/r)/sigma.squared.hat
+alpha=.05
+p=k+1
+f.compare<- qf(1-alpha,p,n-p)
+# f0
+# f.compare
+paste0("The p value for the F statistic ", 1-pf(f0, df1=r, df2=n-k-1))
+```
+
+### Difference in Mean Number of Vessels Colored by Fluoroscopy Between Males and Females
+```{r}
+y <- heart$Color_fluoroscopy
+male <- matrix(heart$Sex,nrow=length(y))
+n <- length(y)
+col1 <- matrix(rep(1, times = length(y), nrow = n))
+x <- cbind(col1,male)
+y <- matrix(y, nrow = n)
+T <- matrix(c(0,1),nrow=1)
+k <- ncol(x)-1
+xt <- t(x)
+xtx <- xt%*%x
+xtx <- xtx
+xtxi <- solve(xtx)
+c <- xtxi
+beta.hat <- xtxi%*%xt%*%y
+beta.hat
+beta.hat0 <- beta.hat[1,1]
+beta.hat1 <- beta.hat[2,1]
+yhat <- x %*% beta.hat
+# Residual
+hat.matrix <- x %*% solve(xtx) %*% t(x)
+ones <- rep(1, n)
+SSR <- t(y) %*% (hat.matrix - (1/n)*ones %*% t(ones)) %*% y
+resids <-  (diag(length(y)) - hat.matrix) %*% y
+SSRes <- t(y)%*%resids
+SST <- SSRes + SSR
+MSR <- SSR / k
+MSRes <-  SSRes / (n - k - 1)
+sigma.squared.hat <- MSRes
+T.betahat.diff<- T%*%beta.hat-0
+r=nrow(T)
+f0<- ((t(T.betahat.diff)%*%solve(T%*%xtxi%*%t(T))%*%T.betahat.diff)/r)/sigma.squared.hat
+alpha=.05
+p=k+1
+f.compare<- qf(1-alpha,p,n-p)
+# f0
+# f.compare
+paste0("The p value for the F statistic ", 1-pf(f0, df1=r, df2=n-k-1))
+```
+
+# 95% Confidence Intervals
+```{r}
+hd <- heart %>% 
+  filter(Disease_diagnosis == 1)
+```
+
+### Mean Age of People With Heart Disease
+```{r}
+ages <- hd$Age
+n_ages <- length(ages)
+mean_age <- mean(ages)
+var_age <- var(ages)
+sigma2hat <- var_age
+sigmahat <- sqrt(sigma2hat)
+z <- qt(.975, df=n_ages-1)
+se <- sigmahat/sqrt(n_ages)
+low <- mean_age - z*se
+high <- mean_age + z*se
+paste("95% confidence interval for the mean age of people with heart disease:", low, high)
+```
+
+### Mean Resting Blood Pressure of People with Heart Disease
+```{r}
+rbp <- hd$Resting_blood_pressure
+n_rbp <- length(rbp)
+mean_rbp <- mean(rbp)
+var_rbp <- var(rbp)
+sigma2hat <- var_rbp
+sigmahat <- sqrt(sigma2hat)
+z <- qt(.975, df=n_ages-1)
+se <- sigmahat/sqrt(n_rbp)
+low <- mean_rbp - z*se
+high <- mean_rbp + z*se
+paste("95% confidence interval for the mean resting blood pressure of people with heart disease:", low, high)
+```
+
+
+
+
+

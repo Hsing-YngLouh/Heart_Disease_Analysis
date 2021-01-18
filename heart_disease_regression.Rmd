@@ -1,0 +1,89 @@
+---
+title: "Heart Disease Analysis Regression"
+author: "Hsing-Yng (Winnie) Louh"
+date: "11/20/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(stats)
+library(dplyr)
+library(magrittr)
+library(car)
+library(readr)
+heart <- read_csv("heart.csv")
+colnames(heart) <- c("Age","Sex","Chestpain","Resting_blood_pressure",
+                     "Cholesterol","Fasting_blood_sugar","Resting_ECG",
+                     "Max_heart_rate", "Exercise_angina",
+                     "ST_depressions_exercise","ST_exercise_slope",
+                     "Color_fluoroscopy", "Thalassemia_level",
+                     "Disease_diagnosis")
+heart <- heart %>% 
+    arrange(desc(Sex)) %>% 
+  select(!Thalassemia_level)
+
+```
+
+# Backwards BIC
+```{r}
+n <- nrow(heart)
+glm1 <- glm(Disease_diagnosis~.,
+                family=binomial(), data=heart)
+
+backBIC <- step(glm1, direction = "backward", data=heart, k=log(n))
+
+BICglm1 <- glm(backBIC$formula, family = binomial(), data = heart)
+
+```
+
+# Formula for Model Selected by Backward BIC
+```{r}
+backBIC$formula
+```
+
+# Backwards AIC
+```{r}
+backAIC <- step(glm1, direction = "backward", data=heart)
+AICglm1 <- glm(backAIC$formula, family = binomial(), data = heart)
+```
+
+# Formula for Model Selected by Backward AIC
+```{r}
+AICglm1$formula
+```
+
+# Variance Inflation Factors
+```{r}
+vif(BICglm1)
+vif(AICglm1)
+```
+
+```{r}
+summary(BICglm1)
+```
+
+# 95% Confidence Intervals for the Regressor Coefficients
+```{r}
+alpha <- .05
+critval <- abs(qnorm(alpha/2))
+unnamed_coeff <- unname(BICglm1$coefficients)
+paste("Intercept:", unnamed_coeff[1]-critval*1.368040,
+      unnamed_coeff[1]+critval*1.368040)
+paste("Sex:", unnamed_coeff[2]-critval*0.390420,
+      unnamed_coeff[2]+critval*0.390420)
+paste("Chestpain:", unnamed_coeff[3]-critval*0.171841,
+      unnamed_coeff[3]+critval*0.171841)
+paste("Max_HR:", unnamed_coeff[4]-critval*0.008635,
+      unnamed_coeff[4]+critval*0.008635)
+paste("Angina:", unnamed_coeff[5]-critval*0.377901,
+      unnamed_coeff[5]+critval*0.377901)
+paste("ST_depressions:", unnamed_coeff[6]-critval*0.176163,
+      unnamed_coeff[6]+critval*0.176163)
+paste("Fluoroscopy:", unnamed_coeff[7]-critval*0.168026,
+      unnamed_coeff[7]+critval*0.168026)
+```
+
